@@ -307,6 +307,29 @@ input[type="number"]:focus {
   color: var(--teal-deep);
 }
 
+.score-chip {
+  background: #fef3c7;
+  color: #92400e;
+  font-variant-numeric: tabular-nums;
+}
+
+.total-score-line {
+  margin: 0 0 1rem;
+  font-weight: 600;
+  color: var(--teal-deep);
+}
+
+.win-score {
+  margin: 0.4rem 0 1rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--teal-deep);
+}
+
+.win-wrap .btn + .btn {
+  margin-top: 0.55rem;
+}
+
 .timer-chip.warn {
   background: #fff7ed;
   color: #c2410c;
@@ -672,10 +695,10 @@ input[type="text"]:focus {
 
 .result-stats {
   list-style: none;
-  margin: 0 0 1.2rem;
+  margin: 0 0 0.7rem;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 0.5rem;
 }
 

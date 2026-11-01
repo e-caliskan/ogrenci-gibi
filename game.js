@@ -21,6 +21,9 @@
     awaitingNext: false,
     examActive: false,
     timeLeft: 0,
+    totalScore: 0,
+    lastExamScore: 0,
+    scoreGranted: false,
   };
 
   let timerId = null;
@@ -76,6 +79,9 @@
       recessTaken: state.recessTaken,
       examActive: state.examActive,
       timeLeft: state.timeLeft,
+      totalScore: state.totalScore,
+      lastExamScore: state.lastExamScore,
+      scoreGranted: state.scoreGranted,
     };
     try {
       localStorage.setItem(SAVE_KEY, JSON.stringify(data));
@@ -105,7 +111,9 @@
     state.studentAge = Number(data.studentAge) || 8;
     state.subjectMode = normalizeSubjectMode(data.subjectMode);
     state.subject =
-      data.subject === "math" || data.subject === "turkish"
+      data.subject === "math" ||
+      data.subject === "turkish" ||
+      data.subject === "english"
         ? data.subject
         : subjectForDay(Number(data.day) || 1);
     state.started = true;
@@ -118,7 +126,145 @@
     state.recessTaken = Boolean(data.recessTaken);
     state.examActive = Boolean(data.examActive);
     state.timeLeft = Number(data.timeLeft) || 0;
+    state.totalScore = Number(data.totalScore) || 0;
+    state.lastExamScore = Number(data.lastExamScore) || 0;
+    state.scoreGranted = Boolean(data.scoreGranted);
     state.awaitingNext = false;
+  }
+
+  function calcExamScore(correct, passed) {
+    let score = correct * 10;
+    if (passed) score += 30;
+    if (correct === QUESTIONS_PER_EXAM) score += 50;
+    return score;
+  }
+
+  function updateScoreUI() {
+    const label = `Puan ${state.totalScore}`;
+    if ($("day-score")) $("day-score").textContent = label;
+    if ($("exam-score")) $("exam-score").textContent = label;
+    if ($("stat-total-score")) $("stat-total-score").textContent = String(state.totalScore);
+    if ($("win-score")) $("win-score").textContent = `Toplam puan: ${state.totalScore}`;
+  }
+
+  function buildScoreShareCanvas() {
+    const canvas = document.createElement("canvas");
+    canvas.width = 1080;
+    canvas.height = 1350;
+    const ctx = canvas.getContext("2d");
+
+    const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    grad.addColorStop(0, "#8ed4f0");
+    grad.addColorStop(0.45, "#b8e4f7");
+    grad.addColorStop(0.451, "#d4f0c8");
+    grad.addColorStop(1, "#a8d46a");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Card
+    roundRect(ctx, 80, 140, 920, 1070, 40);
+    ctx.fillStyle = "rgba(255, 253, 245, 0.95)";
+    ctx.fill();
+
+    ctx.fillStyle = "#0f766e";
+    ctx.font = "bold 72px Fredoka, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("Öğrenci Gibi", canvas.width / 2, 280);
+
+    ctx.fillStyle = "#1c2a38";
+    ctx.font = "600 44px Fredoka, sans-serif";
+    ctx.fillText(`Gün ${state.day} / ${TOTAL_DAYS}`, canvas.width / 2, 370);
+
+    ctx.font = "500 36px Fredoka, sans-serif";
+    ctx.fillStyle = "#334155";
+    ctx.fillText(subjectLabel(state.subject) + " fotokopisi", canvas.width / 2, 430);
+
+    ctx.fillStyle = "#0f766e";
+    ctx.font = "bold 120px Fredoka, sans-serif";
+    ctx.fillText(String(state.totalScore), canvas.width / 2, 620);
+
+    ctx.font = "600 40px Fredoka, sans-serif";
+    ctx.fillStyle = "#92400e";
+    ctx.fillText("TOPLAM PUAN", canvas.width / 2, 690);
+
+    // Stats boxes
+    const boxes = [
+      { label: "Bu sınav", value: String(state.lastExamScore) },
+      { label: "Doğru", value: String(state.correct) },
+      { label: "Yanlış", value: String(state.wrong) },
+    ];
+    boxes.forEach((box, i) => {
+      const x = 140 + i * 280;
+      roundRect(ctx, x, 780, 240, 180, 24);
+      ctx.fillStyle = "#f1f5f9";
+      ctx.fill();
+      ctx.fillStyle = "#64748b";
+      ctx.font = "500 28px Fredoka, sans-serif";
+      ctx.fillText(box.label, x + 120, 850);
+      ctx.fillStyle = "#1c2a38";
+      ctx.font = "bold 56px Fredoka, sans-serif";
+      ctx.fillText(box.value, x + 120, 920);
+    });
+
+    ctx.fillStyle = "#0f766e";
+    ctx.font = "500 32px Fredoka, sans-serif";
+    ctx.fillText(`${state.studentAge} yaş · Gerçek bir öğrenci gibi!`, canvas.width / 2, 1080);
+
+    return canvas;
+  }
+
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  async function shareScoreImage() {
+    try {
+      if (document.fonts && document.fonts.ready) {
+        await document.fonts.ready;
+      }
+    } catch (_) {
+      /* font yüklenmese de devam */
+    }
+    const canvas = buildScoreShareCanvas();
+    const blob = await new Promise((resolve) =>
+      canvas.toBlob(resolve, "image/png")
+    );
+    if (!blob) return;
+
+    const file = new File([blob], "ogrenci-gibi-puan.png", {
+      type: "image/png",
+    });
+    const text = `Öğrenci Gibi'de ${state.totalScore} puan yaptım! Gün ${state.day}/${TOTAL_DAYS}`;
+
+    try {
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: "Öğrenci Gibi Puanım",
+          text,
+        });
+        return;
+      }
+    } catch (_) {
+      /* kullanıcı iptal ettiyse sessiz geç */
+      return;
+    }
+
+    // Paylaşım yoksa resmi indir
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "ogrenci-gibi-puan.png";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
   }
 
   function timeLimitForAge(_age) {
@@ -322,6 +468,109 @@
     ],
   };
 
+  function ew(en, tr) {
+    const enAnswers = Array.isArray(en) ? en : [en];
+    const trAnswers = Array.isArray(tr) ? tr : [tr];
+    return [
+      q(`“${enAnswers[0]}” İngilizce kelimesinin Türkçe anlamı nedir?`, trAnswers[0], trAnswers),
+      q(`“${trAnswers[0]}” kelimesinin İngilizcesi nedir?`, enAnswers[0], enAnswers),
+    ];
+  }
+
+  const ENGLISH_BANK = {
+    easy: [
+      ...ew("apple", "elma"),
+      ...ew("book", "kitap"),
+      ...ew("cat", "kedi"),
+      ...ew("dog", "köpek"),
+      ...ew("water", "su"),
+      ...ew("school", "okul"),
+      ...ew("teacher", ["öğretmen", "hoca"]),
+      ...ew("student", "öğrenci"),
+      ...ew("friend", ["arkadaş", "dost"]),
+      ...ew("house", ["ev", "konut"]),
+      ...ew("car", ["araba", "otomobil"]),
+      ...ew("red", "kırmızı"),
+      ...ew("blue", "mavi"),
+      ...ew("green", "yeşil"),
+      ...ew("sun", "güneş"),
+      ...ew("moon", "ay"),
+      ...ew("milk", "süt"),
+      ...ew("bread", "ekmek"),
+      ...ew("pen", "kalem"),
+      ...ew("table", "masa"),
+      ...ew("chair", ["sandalye", "koltuk"]),
+      ...ew("hello", ["merhaba", "selam"]),
+      ...ew("goodbye", ["güle güle", "hoşça kal", "allahaısmarladık"]),
+      ...ew("yes", "evet"),
+      ...ew("no", "hayır"),
+      ...ew("one", ["bir", "1"]),
+      ...ew("two", ["iki", "2"]),
+      ...ew("three", ["üç", "3"]),
+      q("“Good morning” ne demektir?", ["günaydın", "iyi sabahlar"]),
+      q("“Thank you” ne demektir?", ["teşekkür ederim", "teşekkürler", "sağ ol"]),
+    ].flat(),
+    mid: [
+      ...ew("family", "aile"),
+      ...ew("mother", ["anne", "ana"]),
+      ...ew("father", "baba"),
+      ...ew("brother", ["erkek kardeş", "abi", "kardeş"]),
+      ...ew("sister", ["kız kardeş", "abla", "kardeş"]),
+      ...ew("city", ["şehir", "kent"]),
+      ...ew("country", ["ülke", "memleket"]),
+      ...ew("window", "pencere"),
+      ...ew("door", "kapı"),
+      ...ew("garden", ["bahçe", "bağ"]),
+      ...ew("animal", "hayvan"),
+      ...ew("bird", "kuş"),
+      ...ew("fish", "balık"),
+      ...ew("happy", ["mutlu", "sevinçli"]),
+      ...ew("sad", ["üzgün", "mutsuz"]),
+      ...ew("big", ["büyük", "iri"]),
+      ...ew("small", ["küçük", "ufak"]),
+      ...ew("fast", ["hızlı", "çabuk"]),
+      ...ew("slow", "yavaş"),
+      ...ew("hot", ["sıcak", "kızgın"]),
+      ...ew("cold", "soğuk"),
+      ...ew("beautiful", ["güzel", "hoş"]),
+      ...ew("difficult", ["zor", "güç"]),
+      ...ew("easy", ["kolay", "basit"]),
+      q("“How are you?” ne demektir?", ["nasılsın", "nasılsınız", "iyi misin"]),
+      q("“My name is” ne demektir?", ["benim adım", "adım", "ismim"]),
+      q("“Please” ne demektir?", ["lütfen"]),
+      q("“Sorry” ne demektir?", ["özür dilerim", "pardon", "affedersin"]),
+      q("“See you later” ne demektir?", ["görüşürüz", "sonra görüşürüz"]),
+    ].flat(),
+    hard: [
+      ...ew("knowledge", ["bilgi", "ilim"]),
+      ...ew("important", ["önemli", "mühim"]),
+      ...ew("environment", ["çevre", "ortam"]),
+      ...ew("adventure", "macera"),
+      ...ew("challenge", ["meydan okuma", "zorluk", "mücadele"]),
+      ...ew("success", ["başarı", "muvaffakiyet"]),
+      ...ew("failure", ["başarısızlık", "hata"]),
+      ...ew("opinion", ["görüş", "fikir", "düşünce"]),
+      ...ew("experience", ["deneyim", "tecrübe"]),
+      ...ew("opportunity", ["fırsat", "olanak"]),
+      ...ew("responsibility", ["sorumluluk", "mesuliyet"]),
+      ...ew("imagination", ["hayal gücü", "imgelem"]),
+      ...ew("curious", ["meraklı", "ilgili"]),
+      ...ew("brave", ["cesur", "yiğit"]),
+      ...ew("honest", ["dürüst", "namuslu"]),
+      ...ew("patient", ["sabırlı", "hasta"]),
+      ...ew("improve", ["geliştirmek", "iyileştirmek"]),
+      ...ew("decide", ["karar vermek", "kararlaştırmak"]),
+      ...ew("explain", ["açıklamak", "anlatmak"]),
+      ...ew("compare", ["karşılaştırmak", "kıyaslamak"]),
+      q("“Because” ne demektir?", ["çünkü", "zira"]),
+      q("“Although” ne demektir?", ["rağmen", "-e rağmen", "ise de"]),
+      q("“However” ne demektir?", ["ancak", "fakat", "ama"]),
+      q("“Already” ne demektir?", ["zaten", "çoktan", "halihazırda"]),
+      q("“Usually” ne demektir?", ["genellikle", "çoğunlukla", "hep"]),
+      q("“Necessary” ne demektir?", ["gerekli", "zorunlu", "lâzım"]),
+    ].flat(),
+  };
+
   function normalizeAnswer(value) {
     const raw = String(value || "").trim();
     // Tek başına noktalama cevabı bozulmasın (?, ., !, ...)
@@ -344,15 +593,36 @@
   }
 
   function normalizeSubjectMode(mode) {
-    if (mode === "math" || mode === "turkish" || mode === "both") return mode;
+    if (
+      mode === "math" ||
+      mode === "turkish" ||
+      mode === "english" ||
+      mode === "both"
+    ) {
+      return mode;
+    }
     return "both";
   }
 
   function subjectForDay(day) {
     if (state.subjectMode === "math") return "math";
     if (state.subjectMode === "turkish") return "turkish";
-    // İkisi de: tek günler Türkçe, çift günler Matematik
-    return day % 2 === 1 ? "turkish" : "math";
+    if (state.subjectMode === "english") return "english";
+    // Hepsi: Türkçe → Matematik → İngilizce
+    const cycle = ["turkish", "math", "english"];
+    return cycle[(day - 1) % 3];
+  }
+
+  function topicForEnglish(age) {
+    if (age <= 8) return "Temel İngilizce kelimeler";
+    if (age <= 12) return "Günlük İngilizce kelimeler";
+    return "İleri düzey İngilizce kelimeler";
+  }
+
+  function englishBankForAge(age) {
+    if (age <= 8) return ENGLISH_BANK.easy;
+    if (age <= 12) return [...ENGLISH_BANK.easy, ...ENGLISH_BANK.mid];
+    return [...ENGLISH_BANK.mid, ...ENGLISH_BANK.hard];
   }
 
   function topicForTurkish(age) {
@@ -419,8 +689,7 @@
     return [a, b];
   }
 
-  function buildTurkishQuestions() {
-    const bank = bankForAge(state.studentAge);
+  function pickFromBank(bank, subject) {
     const dayShift = (state.day - 1) % bank.length;
     const rotated = bank.slice(dayShift).concat(bank.slice(0, dayShift));
     const picked = shuffle(rotated).slice(0, QUESTIONS_PER_EXAM);
@@ -428,11 +697,19 @@
       picked.push(bank[picked.length % bank.length]);
     }
     return picked.map((item) => ({
-      subject: "turkish",
+      subject,
       prompt: item.prompt,
       answer: item.answer,
       answers: item.answers.slice(),
     }));
+  }
+
+  function buildTurkishQuestions() {
+    return pickFromBank(bankForAge(state.studentAge), "turkish");
+  }
+
+  function buildEnglishQuestions() {
+    return pickFromBank(englishBankForAge(state.studentAge), "english");
   }
 
   function buildMathQuestions() {
@@ -459,9 +736,9 @@
 
   function buildQuestions() {
     state.subject = subjectForDay(state.day);
-    return state.subject === "math"
-      ? buildMathQuestions()
-      : buildTurkishQuestions();
+    if (state.subject === "math") return buildMathQuestions();
+    if (state.subject === "english") return buildEnglishQuestions();
+    return buildTurkishQuestions();
   }
 
   function isValidQuestion(item) {
@@ -469,8 +746,20 @@
       item &&
       typeof item.prompt === "string" &&
       Array.isArray(item.answers) &&
-      (item.subject === "math" || item.subject === "turkish")
+      (item.subject === "math" ||
+        item.subject === "turkish" ||
+        item.subject === "english")
     );
+  }
+
+  function subjectLabel(subject) {
+    if (subject === "math") return "Matematik";
+    if (subject === "english") return "İngilizce";
+    return "Türkçe";
+  }
+
+  function subjectTitle(subject) {
+    return `${subjectLabel(subject)} Fotokopisi`;
   }
 
   function syncAnswerInput() {
@@ -488,24 +777,26 @@
   function updateDayScreen() {
     state.subject = subjectForDay(state.day);
     const limit = timeLimitForAge(state.studentAge);
-    const isMath = state.subject === "math";
-    const title = isMath ? "Matematik Fotokopisi" : "Türkçe Fotokopisi";
+    const title = subjectTitle(state.subject);
     let topic;
-    if (isMath) {
+    if (state.subject === "math") {
       const { minVal, maxVal } = difficultyForDay(state.day, state.studentAge);
       topic = `Toplama işlemi · sayılar ${minVal}–${maxVal}`;
+    } else if (state.subject === "english") {
+      topic = topicForEnglish(state.studentAge);
     } else {
       topic = topicForTurkish(state.studentAge);
     }
 
     $("day-label").textContent = `Gün ${state.day} / ${TOTAL_DAYS}`;
-    $("board-text").textContent = `${topic} · ${isMath ? "Matematik" : "Türkçe"} fotokopisi`;
+    $("board-text").textContent = `${topic} · ${subjectLabel(state.subject)} fotokopisi`;
     $("day-goal").textContent =
       `${QUESTIONS_PER_EXAM} soru · her soruya ${limit} sn · ${PASS_SCORE}+ doğru geçersin`;
     $("student-name").textContent = `${state.studentAge} yaşındaki öğrenci`;
     if ($("sheet-title")) $("sheet-title").textContent = title;
     if ($("ws-title")) $("ws-title").textContent = title;
     syncAnswerInput();
+    updateScoreUI();
   }
 
   function enterExamUI(keepTime) {
@@ -513,9 +804,7 @@
       state.questions[0] && state.questions[0].subject
         ? state.questions[0].subject
         : subjectForDay(state.day);
-    const title =
-      state.subject === "math" ? "Matematik Fotokopisi" : "Türkçe Fotokopisi";
-    if ($("ws-title")) $("ws-title").textContent = title;
+    if ($("ws-title")) $("ws-title").textContent = subjectTitle(state.subject);
     $("ws-day").textContent = `Gün ${state.day}`;
     $("live-correct").textContent = String(state.correct);
     $("live-wrong").textContent = String(state.wrong);
@@ -525,6 +814,7 @@
     $("feedback").textContent = "";
     $("feedback").className = "feedback";
     syncAnswerInput();
+    updateScoreUI();
     showScreen("exam");
     renderQuestion(keepTime);
     saveProgress();
@@ -705,9 +995,18 @@
     card.classList.remove("pass", "fail");
     card.classList.add(passed ? "pass" : "fail");
 
+    const examScore = calcExamScore(state.correct, passed);
+    state.lastExamScore = examScore;
+    if (passed && !state.scoreGranted) {
+      state.totalScore += examScore;
+      state.scoreGranted = true;
+    }
+
     $("stat-correct").textContent = String(state.correct);
     $("stat-wrong").textContent = String(state.wrong);
     $("stat-recess").textContent = String(passed ? state.recessEarned : 0);
+    if ($("stat-score")) $("stat-score").textContent = String(examScore);
+    updateScoreUI();
 
     $("btn-recess").classList.toggle(
       "hidden",
@@ -730,19 +1029,19 @@
       mood.textContent = "😟";
       $("result-title").textContent = "Sınavı geçemedin";
       $("result-msg").textContent =
-        `En az ${PASS_SCORE} doğru lazım. Sınavı geçemediğin için teneffüse çıkamazsın. Kalemini alıp tekrar dene.`;
+        `En az ${PASS_SCORE} doğru lazım. Sınavı geçemediğin için teneffüse çıkamazsın. Bu sınav puanın: ${examScore}.`;
     } else if (allCorrect) {
       mood.textContent = "🤩";
       teacher.classList.add("happy");
       $("result-title").textContent = "Hepsi doğru!";
       $("result-msg").textContent =
-        `Harika! ${QUESTIONS_PER_EXAM} doğru. Bütün teneffüslere çıkabilirsin (${recess} teneffüs).`;
+        `Harika! ${QUESTIONS_PER_EXAM} doğru · +${examScore} puan. Bütün teneffüslere çıkabilirsin.`;
     } else {
       mood.textContent = "🙂";
       teacher.classList.add("happy");
       $("result-title").textContent = "Sınavı geçtin!";
       $("result-msg").textContent =
-        `${state.correct} doğru yaptın. Her doğru için bir teneffüs: ${recess} teneffüs hakkın var.`;
+        `${state.correct} doğru · +${examScore} puan. Teneffüs hakkın: ${recess}.`;
     }
 
     showScreen("result");
@@ -778,8 +1077,12 @@
     stopTimer();
     clearAdvanceTimer();
     if (state.day >= TOTAL_DAYS) {
+      if ($("win-title")) {
+        $("win-title").textContent = `${TOTAL_DAYS} günü tamamladın!`;
+      }
       $("win-msg").textContent =
-        `${state.studentAge} yaşında bir öğrenci gibi 100 günü bitirdin. Matematik ve Türkçe fotokopisi ustası oldun!`;
+        `${state.studentAge} yaşında bir öğrenci gibi ${TOTAL_DAYS} günü bitirdin. Matematik, Türkçe ve İngilizce fotokopisi ustası oldun!`;
+      updateScoreUI();
       clearProgress();
       state.started = false;
       showScreen("win");
@@ -795,6 +1098,8 @@
     state.recessTaken = false;
     state.examActive = false;
     state.timeLeft = 0;
+    state.lastExamScore = 0;
+    state.scoreGranted = false;
     updateDayScreen();
     showScreen("day");
     saveProgress();
@@ -812,6 +1117,7 @@
     state.recessTaken = false;
     state.examActive = false;
     state.timeLeft = 0;
+    state.lastExamScore = 0;
     updateDayScreen();
     showScreen("day");
     saveProgress();
@@ -825,6 +1131,9 @@
     state.started = false;
     state.examActive = false;
     state.timeLeft = 0;
+    state.totalScore = 0;
+    state.lastExamScore = 0;
+    state.scoreGranted = false;
     state.questions = [];
     showAgeMenu();
   }
@@ -916,6 +1225,9 @@
     state.recessEarned = 0;
     state.recessLeft = 0;
     state.timeLeft = 0;
+    state.totalScore = 0;
+    state.lastExamScore = 0;
+    state.scoreGranted = false;
     state.subject = subjectForDay(1);
     updateDayScreen();
     showScreen("day");
@@ -929,6 +1241,12 @@
   $("btn-next-question").addEventListener("click", () => {
     if (!state.awaitingNext || !state.examActive) return;
     goNextQuestion();
+  });
+  $("btn-share-score").addEventListener("click", () => {
+    shareScoreImage().catch(() => {});
+  });
+  $("btn-share-win").addEventListener("click", () => {
+    shareScoreImage().catch(() => {});
   });
   $("btn-recess").addEventListener("click", goRecess);
   $("btn-back-class").addEventListener("click", backFromRecess);
