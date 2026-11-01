@@ -22,6 +22,21 @@
 
   const $ = (id) => document.getElementById(id);
 
+  function fitViewport() {
+    const vv = window.visualViewport;
+    const h = Math.round(vv ? vv.height : window.innerHeight);
+    const top = Math.round(vv ? vv.offsetTop : 0);
+    document.documentElement.style.setProperty("--app-h", h + "px");
+    document.body.style.top = top + "px";
+  }
+
+  fitViewport();
+  window.addEventListener("resize", fitViewport);
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", fitViewport);
+    window.visualViewport.addEventListener("scroll", fitViewport);
+  }
+
   const screens = {
     age: $("screen-age"),
     day: $("screen-day"),
