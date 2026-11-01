@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Caveat:wght@500;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=20261101b" />
+  <link rel="stylesheet" href="style.css?v=20261101p" />
 </head>
 <body>
   <div class="bg-layer" aria-hidden="true"></div>
@@ -17,7 +17,7 @@
     <div class="brand-wrap">
       <p class="brand">Öğrenci Gibi</p>
       <h1 class="tagline">Okula hoş geldin!</h1>
-      <p class="sub">Oyuna başlamadan önce yaşını öğrenelim.</p>
+      <p class="sub">Oyuna başlamadan önce yaşını ve dersini seçelim.</p>
     </div>
     <div id="continue-box" class="continue-box hidden">
       <p id="continue-info">Kayıtlı oyun var.</p>
@@ -29,6 +29,21 @@
         Senin yaşın (öğrenci)
         <input type="number" id="age-student" min="5" max="18" required placeholder="örn. 8" />
       </label>
+      <fieldset class="subject-pick">
+        <legend>Hangi dersin fotokopisi?</legend>
+        <label class="subject-option">
+          <input type="radio" name="subject-mode" value="math" required />
+          <span>Matematik</span>
+        </label>
+        <label class="subject-option">
+          <input type="radio" name="subject-mode" value="turkish" />
+          <span>Türkçe</span>
+        </label>
+        <label class="subject-option">
+          <input type="radio" name="subject-mode" value="both" checked />
+          <span>İkisi de (günlere göre)</span>
+        </label>
+      </fieldset>
       <button type="submit" class="btn btn-primary">Okula Gir</button>
     </form>
   </section>
@@ -42,7 +57,7 @@
     <div class="classroom">
       <div class="board">
         <p class="board-title">Bugünün Dersi</p>
-        <p class="board-text">Toplama işlemi · Matematik fotokopisi</p>
+        <p id="board-text" class="board-text">Matematik ve Türkçe · Fotokopi çalışması</p>
         <p id="day-goal" class="board-goal">20 soruluk sınavı geç, teneffüse çık!</p>
       </div>
       <div class="cast">
@@ -58,7 +73,7 @@
       <div class="desk-row">
         <div class="prop photocopy">
           <div class="sheet">
-            <span class="sheet-title">Matematik Fotokopisi</span>
+            <span class="sheet-title" id="sheet-title">Türkçe Fotokopisi</span>
             <span class="sheet-lines"></span>
           </div>
           <span>Fotokopi</span>
@@ -77,7 +92,10 @@
   <section id="screen-exam" class="screen">
     <header class="topbar">
       <span class="brand-mini">Öğrenci Gibi</span>
-      <span id="exam-progress" class="day-chip">Soru 1 / 20</span>
+      <div class="exam-chips">
+        <span id="exam-timer" class="day-chip timer-chip" aria-live="polite">1:00</span>
+        <span id="exam-progress" class="day-chip">Soru 1 / 20</span>
+      </div>
     </header>
     <div class="exam-layout">
       <aside class="exam-side">
@@ -97,14 +115,15 @@
       </aside>
       <div class="worksheet">
         <div class="worksheet-header">
-          <span>Matematik Fotokopisi — Toplama</span>
+          <span id="ws-title">Türkçe Fotokopisi</span>
           <span id="ws-day">Gün 1</span>
         </div>
         <p class="q-label">Soruyu kendin çöz</p>
-        <p id="question-text" class="question">3 + 5 = ?</p>
+        <p id="question-text" class="question">Büyük sözcüğünün zıt anlamlısı nedir?</p>
         <form id="answer-form" class="answer-form">
-          <input type="number" id="answer-input" inputmode="numeric" autocomplete="off" required placeholder="Cevabın" />
-          <button type="submit" class="btn btn-primary">Cevapla</button>
+          <input type="text" id="answer-input" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" required placeholder="Cevabın" />
+          <button type="submit" class="btn btn-primary" id="btn-answer">Cevapla</button>
+          <button type="button" id="btn-next-question" class="btn btn-primary next-question-btn hidden">Devam</button>
         </form>
         <p id="feedback" class="feedback" aria-live="polite"></p>
       </div>
@@ -157,6 +176,6 @@
     </div>
   </section>
 
-  <script src="game.js?v=20261101b"></script>
+  <script src="game.js?v=20261101p"></script>
 </body>
 </html>
