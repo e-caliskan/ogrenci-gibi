@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
+  <title>Öğrenci Gibi</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Caveat:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="bg-layer" aria-hidden="true"></div>
+
+  <!-- YAŞ SORMA -->
+  <section id="screen-age" class="screen active">
+    <div class="brand-wrap">
+      <p class="brand">Öğrenci Gibi</p>
+      <h1 class="tagline">Okula hoş geldin!</h1>
+      <p class="sub">Oyuna başlamadan önce yaşını öğrenelim.</p>
+    </div>
+    <div id="continue-box" class="continue-box hidden">
+      <p id="continue-info">Kayıtlı oyun var.</p>
+      <button type="button" id="btn-continue" class="btn btn-primary">Kaldığım Yerden Devam Et</button>
+      <button type="button" id="btn-new-game" class="btn btn-secondary">Yeni Oyun</button>
+    </div>
+    <form id="age-form" class="age-form">
+      <label>
+        Senin yaşın (öğrenci)
+        <input type="number" id="age-student" min="5" max="18" required placeholder="örn. 8" />
+      </label>
+      <button type="submit" class="btn btn-primary">Okula Gir</button>
+    </form>
+  </section>
+
+  <!-- GÜN BAŞI -->
+  <section id="screen-day" class="screen">
+    <header class="topbar">
+      <span class="brand-mini">Öğrenci Gibi</span>
+      <span id="day-label" class="day-chip">Gün 1 / 100</span>
+    </header>
+    <div class="classroom">
+      <div class="board">
+        <p class="board-title">Bugünün Dersi</p>
+        <p class="board-text">Toplama işlemi · Matematik fotokopisi</p>
+        <p id="day-goal" class="board-goal">20 soruluk sınavı geç, teneffüse çık!</p>
+      </div>
+      <div class="cast">
+        <div class="char teacher" id="teacher-idle">
+          <div class="face">👩‍🏫</div>
+          <span>Öğretmen</span>
+        </div>
+        <div class="char student" id="student-idle">
+          <div class="face">🧒</div>
+          <span id="student-name">Öğrenci</span>
+        </div>
+      </div>
+      <div class="desk-row">
+        <div class="prop photocopy">
+          <div class="sheet">
+            <span class="sheet-title">Matematik Fotokopisi</span>
+            <span class="sheet-lines"></span>
+          </div>
+          <span>Fotokopi</span>
+        </div>
+        <div class="prop pen">
+          <div class="pen-body"></div>
+          <span>Kalem</span>
+        </div>
+      </div>
+      <button id="btn-start-exam" class="btn btn-primary">Fotokopiyi Çöz (Sınav)</button>
+      <p class="hint">Dersi kendin yaparsın. Doğru = teneffüs hakkı!</p>
+    </div>
+  </section>
+
+  <!-- SINAV -->
+  <section id="screen-exam" class="screen">
+    <header class="topbar">
+      <span class="brand-mini">Öğrenci Gibi</span>
+      <span id="exam-progress" class="day-chip">Soru 1 / 20</span>
+    </header>
+    <div class="exam-layout">
+      <aside class="exam-side">
+        <div class="char teacher small" id="teacher-exam">
+          <div class="face" id="teacher-mood">👩‍🏫</div>
+          <span>Öğretmen bakıyor…</span>
+        </div>
+        <div class="pen-tool">
+          <div class="pen-body big"></div>
+          <span>Kalemin hazır</span>
+        </div>
+        <ul class="score-live">
+          <li>Doğru: <strong id="live-correct">0</strong></li>
+          <li>Yanlış: <strong id="live-wrong">0</strong></li>
+          <li>Teneffüs: <strong id="live-recess">0</strong></li>
+        </ul>
+      </aside>
+      <div class="worksheet">
+        <div class="worksheet-header">
+          <span>Matematik Fotokopisi — Toplama</span>
+          <span id="ws-day">Gün 1</span>
+        </div>
+        <p class="q-label">Soruyu kendin çöz</p>
+        <p id="question-text" class="question">3 + 5 = ?</p>
+        <form id="answer-form" class="answer-form">
+          <input type="number" id="answer-input" inputmode="numeric" autocomplete="off" required placeholder="Cevabın" />
+          <button type="submit" class="btn btn-primary">Kalemle Yaz ✓</button>
+        </form>
+        <p id="feedback" class="feedback" aria-live="polite"></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SONUÇ -->
+  <section id="screen-result" class="screen">
+    <div class="result-card" id="result-card">
+      <div class="char teacher big" id="teacher-result">
+        <div class="face" id="result-mood">👩‍🏫</div>
+      </div>
+      <h2 id="result-title">Sınav Bitti</h2>
+      <p id="result-msg" class="result-msg"></p>
+      <ul class="result-stats">
+        <li><span>Doğru</span><strong id="stat-correct">0</strong></li>
+        <li><span>Yanlış</span><strong id="stat-wrong">0</strong></li>
+        <li><span>Teneffüs</span><strong id="stat-recess">0</strong></li>
+      </ul>
+      <div class="result-actions">
+        <button id="btn-recess" class="btn btn-secondary hidden">Teneffüse Çık</button>
+        <button id="btn-next-day" class="btn btn-primary">Sonraki Gün</button>
+        <button id="btn-retry" class="btn btn-danger hidden">Tekrar Dene</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- TENEFFÜS -->
+  <section id="screen-recess" class="screen">
+    <div class="recess-yard">
+      <p class="brand-mini light">Öğrenci Gibi</p>
+      <h2>Teneffüs!</h2>
+      <p id="recess-text">Bahçedesin. Koş, oyna, nefes al.</p>
+      <div class="recess-balls" aria-hidden="true">
+        <span></span><span></span><span></span>
+      </div>
+      <div class="student bounce" id="recess-student">🧒</div>
+      <p id="recess-count" class="recess-count"></p>
+      <button id="btn-back-class" class="btn btn-primary">Sınıfa Dön</button>
+    </div>
+  </section>
+
+  <!-- OYUN BİTTİ -->
+  <section id="screen-win" class="screen">
+    <div class="win-wrap">
+      <p class="brand">Öğrenci Gibi</p>
+      <h1>100 günü tamamladın!</h1>
+      <p id="win-msg">Sınavları geçtin. Gerçek bir öğrenci gibisin.</p>
+      <button id="btn-restart" class="btn btn-primary">Baştan Başla</button>
+    </div>
+  </section>
+
+  <script src="game.js"></script>
+</body>
+</html>
