@@ -1,6 +1,6 @@
 (() => {
   const TOTAL_DAYS = 10;
-  const QUESTIONS_PER_EXAM = 20;
+  const QUESTIONS_PER_EXAM = 10;
   const PASS_SCORE = 10;
   const SAVE_KEY = "ogrenci-gibi-save";
 
@@ -501,7 +501,15 @@
       ...ew("table", "masa"),
       ...ew("chair", ["sandalye", "koltuk"]),
       ...ew("hello", ["merhaba", "selam"]),
-      ...ew("goodbye", ["güle güle", "hoşça kal", "allahaısmarladık"]),
+      ...ew("goodbye", [
+        "güle güle",
+        "hoşça kal",
+        "hoşcakal",
+        "allahaısmarladık",
+        "allahısmarladık",
+        "allahismarladik",
+        "bye",
+      ]),
       ...ew("yes", "evet"),
       ...ew("no", "hayır"),
       ...ew("one", ["bir", "1"]),
@@ -514,8 +522,8 @@
       ...ew("family", "aile"),
       ...ew("mother", ["anne", "ana"]),
       ...ew("father", "baba"),
-      ...ew("brother", ["erkek kardeş", "abi", "kardeş"]),
-      ...ew("sister", ["kız kardeş", "abla", "kardeş"]),
+      ...ew("brother", ["erkek kardeş", "erkek kardes", "abi", "kardeş", "kardes"]),
+      ...ew("sister", ["kız kardeş", "kiz kardes", "abla", "kardeş", "kardes"]),
       ...ew("city", ["şehir", "kent"]),
       ...ew("country", ["ülke", "memleket"]),
       ...ew("window", "pencere"),
@@ -557,7 +565,7 @@
       ...ew("curious", ["meraklı", "ilgili"]),
       ...ew("brave", ["cesur", "yiğit"]),
       ...ew("honest", ["dürüst", "namuslu"]),
-      ...ew("patient", ["sabırlı", "hasta"]),
+      ...ew("patient", ["sabırlı", "sabirli", "hasta"]),
       ...ew("improve", ["geliştirmek", "iyileştirmek"]),
       ...ew("decide", ["karar vermek", "kararlaştırmak"]),
       ...ew("explain", ["açıklamak", "anlatmak"]),
@@ -580,12 +588,31 @@
     return raw
       .toLocaleLowerCase("tr-TR")
       .replace(/[.!?…]+$/g, "")
+      .replace(/['’`´]/g, "")
       .replace(/\s+/g, " ");
+  }
+
+  function foldTurkish(value) {
+    return normalizeAnswer(value)
+      .replace(/ğ/g, "g")
+      .replace(/ü/g, "u")
+      .replace(/ş/g, "s")
+      .replace(/ı/g, "i")
+      .replace(/ö/g, "o")
+      .replace(/ç/g, "c")
+      .replace(/â/g, "a")
+      .replace(/î/g, "i")
+      .replace(/û/g, "u");
   }
 
   function answersMatch(given, accepted) {
     const g = normalizeAnswer(given);
-    return accepted.some((a) => normalizeAnswer(a) === g);
+    const gFold = foldTurkish(given);
+    return accepted.some((a) => {
+      const n = normalizeAnswer(a);
+      const f = foldTurkish(a);
+      return n === g || f === gFold;
+    });
   }
 
   function displayAnswer(question) {
@@ -926,12 +953,32 @@
   function handleTimeout() {
     if (state.awaitingNext || !state.examActive) return;
     const current = state.questions[state.index];
-    state.wrong += 1;
+    const input = $("answer-input");
+    const raw = input ? input.value.trim() : "";
+
     state.awaitingNext = true;
     state.timeLeft = 0;
     updateTimerUI();
-    $("answer-input").disabled = true;
-    $("answer-input").blur();
+    if (input) {
+      input.disabled = true;
+      input.blur();
+    }
+
+    // Kutuda doğru cevap yazılmışsa süre bitse bile doğru say
+    if (raw && answersMatch(raw, current.answers)) {
+      state.correct += 1;
+      state.recessEarned += 1;
+      markAnswerResult(
+        true,
+        "Süre bitti ama cevabın doğruydu! Bir teneffüs hakkı kazandın.",
+        "😊"
+      );
+      saveProgress();
+      scheduleAdvance();
+      return;
+    }
+
+    state.wrong += 1;
     markAnswerResult(
       false,
       `Süre bitti! Doğru cevap “${displayAnswer(current)}” idi.`,
