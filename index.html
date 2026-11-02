@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Caveat:wght@500;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=20261101t" />
+  <link rel="stylesheet" href="style.css?v=20261102c" />
 </head>
 <body>
   <div class="bg-layer" aria-hidden="true"></div>
@@ -17,7 +17,7 @@
     <div class="brand-wrap">
       <p class="brand">Öğrenci Gibi</p>
       <h1 class="tagline">Okula hoş geldin!</h1>
-      <p class="sub">Oyuna başlamadan önce yaşını ve dersini seçelim.</p>
+      <p class="sub">Oyuna başlamadan önce adını, yaşını ve dersini seçelim.</p>
     </div>
     <div id="continue-box" class="continue-box hidden">
       <p id="continue-info">Kayıtlı oyun var.</p>
@@ -25,6 +25,10 @@
       <button type="button" id="btn-new-game" class="btn btn-secondary">Yeni Oyun</button>
     </div>
     <form id="age-form" class="age-form">
+      <label>
+        Adın
+        <input type="text" id="student-name-input" maxlength="24" required placeholder="örn. Elif" autocomplete="nickname" />
+      </label>
       <label>
         Senin yaşın (öğrenci)
         <input type="number" id="age-student" min="5" max="18" required placeholder="örn. 8" />
@@ -65,7 +69,7 @@
       <div class="board">
         <p class="board-title">Bugünün Dersi</p>
         <p id="board-text" class="board-text">Matematik, Türkçe ve İngilizce · Fotokopi çalışması</p>
-        <p id="day-goal" class="board-goal">20 soruluk sınavı geç, teneffüse çık!</p>
+        <p id="day-goal" class="board-goal">10 soru · en fazla 3 yanlışla teneffüse çık!</p>
       </div>
       <div class="cast">
         <div class="char teacher" id="teacher-idle">
@@ -91,7 +95,7 @@
         </div>
       </div>
       <button id="btn-start-exam" class="btn btn-primary">Fotokopiyi Çöz (Sınav)</button>
-      <p class="hint">Dersi kendin yaparsın. Doğru = teneffüs hakkı!</p>
+      <p class="hint">Dersi kendin yaparsın. En fazla 3 yanlışla teneffüse çıkarsın!</p>
     </div>
   </section>
 
@@ -101,8 +105,8 @@
       <span class="brand-mini">Öğrenci Gibi</span>
       <div class="exam-chips">
         <span id="exam-score" class="day-chip score-chip">Puan 0</span>
-        <span id="exam-timer" class="day-chip timer-chip" aria-live="polite">1:00</span>
-        <span id="exam-progress" class="day-chip">Soru 1 / 20</span>
+        <span id="exam-timer" class="day-chip timer-chip" aria-live="polite">2:00</span>
+        <span id="exam-progress" class="day-chip">Soru 1 / 10</span>
       </div>
     </header>
     <div class="exam-layout">
@@ -154,7 +158,7 @@
       </ul>
       <p id="total-score-line" class="total-score-line">Toplam puan: <strong id="stat-total-score">0</strong></p>
       <div class="result-actions">
-        <button id="btn-share-score" class="btn btn-secondary" type="button">Puanı Paylaş</button>
+        <button id="btn-share-score" class="btn btn-secondary" type="button">Arkadaşlarla Paylaş</button>
         <button id="btn-recess" class="btn btn-secondary hidden">Teneffüse Çık</button>
         <button id="btn-next-day" class="btn btn-primary">Sonraki Gün</button>
         <button id="btn-retry" class="btn btn-danger hidden">Tekrar Dene</button>
@@ -184,11 +188,11 @@
       <h1 id="win-title">100 günü tamamladın!</h1>
       <p id="win-msg">Sınavları geçtin. Gerçek bir öğrenci gibisin.</p>
       <p id="win-score" class="win-score">Toplam puan: 0</p>
-      <button id="btn-share-win" class="btn btn-secondary" type="button">Puanı Paylaş</button>
+      <button id="btn-share-win" class="btn btn-secondary" type="button">Arkadaşlarla Paylaş</button>
       <button id="btn-restart" class="btn btn-primary">Baştan Başla</button>
     </div>
   </section>
 
-  <script src="game.js?v=20261101t"></script>
+  <script src="game.js?v=20261102c"></script>
 </body>
 </html>

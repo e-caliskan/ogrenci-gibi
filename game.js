@@ -1,11 +1,14 @@
 (() => {
   const TOTAL_DAYS = 10;
   const QUESTIONS_PER_EXAM = 10;
-  const PASS_SCORE = 10;
+  const MAX_WRONG_FOR_RECESS = 3;
+  // 10 soruda en fazla 3 yanlış → en az 7 doğru ile geçersin
+  const PASS_SCORE = QUESTIONS_PER_EXAM - MAX_WRONG_FOR_RECESS;
   const SAVE_KEY = "ogrenci-gibi-save";
 
   const state = {
     day: 1,
+    studentName: "",
     studentAge: 8,
     subjectMode: "both",
     subject: "turkish",
@@ -65,6 +68,7 @@
     if (!state.started) return;
     const data = {
       day: state.day,
+      studentName: state.studentName,
       studentAge: state.studentAge,
       subjectMode: state.subjectMode,
       subject: state.subject,
@@ -108,6 +112,7 @@
 
   function applySave(data) {
     state.day = Math.min(Math.max(1, Number(data.day) || 1), TOTAL_DAYS);
+    state.studentName = sanitizeName(data.studentName);
     state.studentAge = Number(data.studentAge) || 8;
     state.subjectMode = normalizeSubjectMode(data.subjectMode);
     state.subject =
@@ -132,6 +137,25 @@
     state.awaitingNext = false;
   }
 
+  function sanitizeName(value) {
+    const name = String(value || "")
+      .trim()
+      .replace(/\s+/g, " ")
+      .slice(0, 24);
+    return name || "Öğrenci";
+  }
+
+  function displayName() {
+    return state.studentName || "Öğrenci";
+  }
+
+  function fileSafeName(name) {
+    return sanitizeName(name)
+      .toLocaleLowerCase("tr-TR")
+      .replace(/[^a-z0-9çğıöşü]+/gi, "-")
+      .replace(/^-+|-+$/g, "") || "ogrenci";
+  }
+
   function calcExamScore(correct, passed) {
     let score = correct * 10;
     if (passed) score += 30;
@@ -152,6 +176,7 @@
     canvas.width = 1080;
     canvas.height = 1350;
     const ctx = canvas.getContext("2d");
+    const name = displayName();
 
     const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
     grad.addColorStop(0, "#8ed4f0");
@@ -162,30 +187,38 @@
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // Card
-    roundRect(ctx, 80, 140, 920, 1070, 40);
+    roundRect(ctx, 80, 120, 920, 1110, 40);
     ctx.fillStyle = "rgba(255, 253, 245, 0.95)";
     ctx.fill();
 
     ctx.fillStyle = "#0f766e";
-    ctx.font = "bold 72px Fredoka, sans-serif";
+    ctx.font = "bold 64px Fredoka, sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText("Öğrenci Gibi", canvas.width / 2, 280);
+    ctx.fillText("Öğrenci Gibi", canvas.width / 2, 240);
+
+    ctx.fillStyle = "#92400e";
+    ctx.font = "600 34px Fredoka, sans-serif";
+    ctx.fillText("ARKADAŞLARA PUAN KARTI", canvas.width / 2, 310);
 
     ctx.fillStyle = "#1c2a38";
-    ctx.font = "600 44px Fredoka, sans-serif";
-    ctx.fillText(`Gün ${state.day} / ${TOTAL_DAYS}`, canvas.width / 2, 370);
+    ctx.font = "bold 56px Fredoka, sans-serif";
+    ctx.fillText(name, canvas.width / 2, 400);
 
-    ctx.font = "500 36px Fredoka, sans-serif";
+    ctx.font = "500 34px Fredoka, sans-serif";
     ctx.fillStyle = "#334155";
-    ctx.fillText(subjectLabel(state.subject) + " fotokopisi", canvas.width / 2, 430);
+    ctx.fillText(
+      `${state.studentAge} yaş · Gün ${state.day}/${TOTAL_DAYS} · ${subjectLabel(state.subject)}`,
+      canvas.width / 2,
+      460
+    );
 
     ctx.fillStyle = "#0f766e";
-    ctx.font = "bold 120px Fredoka, sans-serif";
-    ctx.fillText(String(state.totalScore), canvas.width / 2, 620);
+    ctx.font = "bold 130px Fredoka, sans-serif";
+    ctx.fillText(String(state.totalScore), canvas.width / 2, 650);
 
     ctx.font = "600 40px Fredoka, sans-serif";
     ctx.fillStyle = "#92400e";
-    ctx.fillText("TOPLAM PUAN", canvas.width / 2, 690);
+    ctx.fillText("TOPLAM PUAN", canvas.width / 2, 720);
 
     // Stats boxes
     const boxes = [
@@ -195,20 +228,23 @@
     ];
     boxes.forEach((box, i) => {
       const x = 140 + i * 280;
-      roundRect(ctx, x, 780, 240, 180, 24);
+      roundRect(ctx, x, 800, 240, 180, 24);
       ctx.fillStyle = "#f1f5f9";
       ctx.fill();
       ctx.fillStyle = "#64748b";
       ctx.font = "500 28px Fredoka, sans-serif";
-      ctx.fillText(box.label, x + 120, 850);
+      ctx.fillText(box.label, x + 120, 870);
       ctx.fillStyle = "#1c2a38";
       ctx.font = "bold 56px Fredoka, sans-serif";
-      ctx.fillText(box.value, x + 120, 920);
+      ctx.fillText(box.value, x + 120, 940);
     });
 
     ctx.fillStyle = "#0f766e";
-    ctx.font = "500 32px Fredoka, sans-serif";
-    ctx.fillText(`${state.studentAge} yaş · Gerçek bir öğrenci gibi!`, canvas.width / 2, 1080);
+    ctx.font = "500 30px Fredoka, sans-serif";
+    ctx.fillText(`${name} gerçek bir öğrenci gibi!`, canvas.width / 2, 1100);
+    ctx.fillStyle = "#64748b";
+    ctx.font = "500 26px Fredoka, sans-serif";
+    ctx.fillText("Bu kartı arkadaşlarınla paylaşabilirsin", canvas.width / 2, 1155);
 
     return canvas;
   }
@@ -237,16 +273,17 @@
     );
     if (!blob) return;
 
-    const file = new File([blob], "ogrenci-gibi-puan.png", {
+    const fileName = `ogrenci-gibi-${fileSafeName(displayName())}-puan.png`;
+    const file = new File([blob], fileName, {
       type: "image/png",
     });
-    const text = `Öğrenci Gibi'de ${state.totalScore} puan yaptım! Gün ${state.day}/${TOTAL_DAYS}`;
+    const text = `${displayName()} Öğrenci Gibi'de ${state.totalScore} puan yaptı! Gün ${state.day}/${TOTAL_DAYS}`;
 
     try {
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({
           files: [file],
-          title: "Öğrenci Gibi Puanım",
+          title: `${displayName()} - Öğrenci Gibi Puan Kartı`,
           text,
         });
         return;
@@ -256,11 +293,11 @@
       return;
     }
 
-    // Paylaşım yoksa resmi indir
+    // Paylaşım yoksa puan kartı dosyasını indir
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "ogrenci-gibi-puan.png";
+    a.download = fileName;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -268,7 +305,7 @@
   }
 
   function timeLimitForAge(_age) {
-    return 60;
+    return 120;
   }
 
   function formatTime(sec) {
@@ -297,8 +334,8 @@
     if (!el) return;
     el.textContent = formatTime(state.timeLeft);
     el.classList.remove("warn", "danger");
-    if (state.timeLeft <= 10) el.classList.add("danger");
-    else if (state.timeLeft <= 20) el.classList.add("warn");
+    if (state.timeLeft <= 15) el.classList.add("danger");
+    else if (state.timeLeft <= 30) el.classList.add("warn");
   }
 
   function startQuestionTimer(reset) {
@@ -818,8 +855,8 @@
     $("day-label").textContent = `Gün ${state.day} / ${TOTAL_DAYS}`;
     $("board-text").textContent = `${topic} · ${subjectLabel(state.subject)} fotokopisi`;
     $("day-goal").textContent =
-      `${QUESTIONS_PER_EXAM} soru · her soruya ${limit} sn · ${PASS_SCORE}+ doğru geçersin`;
-    $("student-name").textContent = `${state.studentAge} yaşındaki öğrenci`;
+      `${QUESTIONS_PER_EXAM} soru · her soruya ${limit} sn · ${PASS_SCORE}+ doğru geçersin · en fazla ${MAX_WRONG_FOR_RECESS} yanlışla teneffüs`;
+    $("student-name").textContent = `${displayName()} · ${state.studentAge} yaş`;
     if ($("sheet-title")) $("sheet-title").textContent = title;
     if ($("ws-title")) $("ws-title").textContent = title;
     syncAnswerInput();
@@ -1027,14 +1064,16 @@
     state.examActive = false;
     state.timeLeft = 0;
     const passed = state.correct >= PASS_SCORE;
+    const canRecess =
+      passed && state.wrong <= MAX_WRONG_FOR_RECESS && state.recessEarned > 0;
     const allWrong = state.correct === 0;
     const allCorrect = state.correct === QUESTIONS_PER_EXAM;
 
-    let recess = passed ? state.recessEarned : 0;
+    let recess = canRecess ? state.recessEarned : 0;
     if (!state.recessTaken) {
       state.recessLeft = recess;
     } else {
-      recess = state.recessEarned;
+      recess = canRecess ? state.recessEarned : 0;
       state.recessLeft = 0;
     }
 
@@ -1051,13 +1090,13 @@
 
     $("stat-correct").textContent = String(state.correct);
     $("stat-wrong").textContent = String(state.wrong);
-    $("stat-recess").textContent = String(passed ? state.recessEarned : 0);
+    $("stat-recess").textContent = String(canRecess ? state.recessEarned : 0);
     if ($("stat-score")) $("stat-score").textContent = String(examScore);
     updateScoreUI();
 
     $("btn-recess").classList.toggle(
       "hidden",
-      !passed || state.recessTaken || state.recessEarned === 0
+      !canRecess || state.recessTaken
     );
     $("btn-next-day").classList.toggle("hidden", !passed);
     $("btn-retry").classList.toggle("hidden", passed);
@@ -1077,6 +1116,12 @@
       $("result-title").textContent = "Sınavı geçemedin";
       $("result-msg").textContent =
         `En az ${PASS_SCORE} doğru lazım. Sınavı geçemediğin için teneffüse çıkamazsın. Bu sınav puanın: ${examScore}.`;
+    } else if (state.wrong > MAX_WRONG_FOR_RECESS) {
+      mood.textContent = "😐";
+      teacher.classList.add("happy");
+      $("result-title").textContent = "Sınavı geçtin!";
+      $("result-msg").textContent =
+        `${state.correct} doğru · +${examScore} puan. Ama ${state.wrong} yanlışın var. En fazla ${MAX_WRONG_FOR_RECESS} yanlışla teneffüse çıkılır; teneffüse çıkamazsın.`;
     } else if (allCorrect) {
       mood.textContent = "🤩";
       teacher.classList.add("happy");
@@ -1088,7 +1133,7 @@
       teacher.classList.add("happy");
       $("result-title").textContent = "Sınavı geçtin!";
       $("result-msg").textContent =
-        `${state.correct} doğru · +${examScore} puan. Teneffüs hakkın: ${recess}.`;
+        `${state.correct} doğru · ${state.wrong} yanlış · +${examScore} puan. Teneffüs hakkın: ${recess}.`;
     }
 
     showScreen("result");
@@ -1128,7 +1173,7 @@
         $("win-title").textContent = `${TOTAL_DAYS} günü tamamladın!`;
       }
       $("win-msg").textContent =
-        `${state.studentAge} yaşında bir öğrenci gibi ${TOTAL_DAYS} günü bitirdin. Matematik, Türkçe ve İngilizce fotokopisi ustası oldun!`;
+        `${displayName()}, ${state.studentAge} yaşında bir öğrenci gibi ${TOTAL_DAYS} günü bitirdin. Matematik, Türkçe ve İngilizce fotokopisi ustası oldun!`;
       updateScoreUI();
       clearProgress();
       state.started = false;
@@ -1197,8 +1242,9 @@
         saved.examActive && saved.questions && saved.questions.length
           ? ` · sınavda soru ${(saved.index || 0) + 1}/20`
           : "";
+      const who = sanitizeName(saved.studentName);
       $("continue-info").textContent =
-        `Kayıt: Gün ${saved.day} / ${TOTAL_DAYS}${mid}`;
+        `Kayıt: ${who} · Gün ${saved.day} / ${TOTAL_DAYS}${mid}`;
     } else {
       box.classList.add("hidden");
       form.classList.remove("hidden");
@@ -1232,7 +1278,12 @@
     }
 
     if (saved.screen === "recess") {
-      if (!state.recessTaken && state.recessEarned > 0) {
+      if (
+        !state.recessTaken &&
+        state.recessEarned > 0 &&
+        state.wrong <= MAX_WRONG_FOR_RECESS &&
+        state.correct >= PASS_SCORE
+      ) {
         state.recessLeft = state.recessEarned;
         goRecess();
       } else {
@@ -1260,6 +1311,7 @@
     e.preventDefault();
     clearProgress();
     const modeInput = document.querySelector('input[name="subject-mode"]:checked');
+    state.studentName = sanitizeName($("student-name-input").value);
     state.studentAge = Number($("age-student").value);
     state.subjectMode = normalizeSubjectMode(modeInput && modeInput.value);
     state.day = 1;
